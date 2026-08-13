@@ -3,7 +3,6 @@ from flask import Flask, request, jsonify, send_from_directory
 from .generator import build_knec_prompt
 from .compiler import prepare_pdf_latex
 
-# Point Flask to the frontend folder located in the parent directory
 frontend_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'frontend'))
 app = Flask(__name__, static_folder=frontend_dir, static_url_path='')
 
@@ -19,19 +18,21 @@ def generate_exam():
         subject = data.get('subject')
         term = data.get('term')
         total_marks = data.get('total_marks', 100)
+        custom_instructions = data.get('custom_instructions', '')
 
-        # 1. Build prompt and calculate blueprint from Supabase
-        result = build_knec_prompt(grade, subject, term, total_marks)
+        # 1. Build strict custom prompt and calculate blueprint
+        result = build_knec_prompt(grade, subject, term, total_marks, custom_instructions)
 
-        # 2. Prepare the LaTeX output file using the template compiler
-        sample_generated_content = "\\noindent \\textbf{1.} [AI Generated content based on blueprint will appear here...]"
+        # 2. Prepare the LaTeX output file
+        sample_generated_content = f"\\section*{{{subject} - {grade}}}\n\\noindent \\textbf{{Custom Instructions Applied:}} {custom_instructions}\n\n\\begin{{enumerate}}\n\\item Sample generated question based on user custom settings...\n\\end{{enumerate}}"
         latex_file = prepare_pdf_latex(sample_generated_content)
 
         return jsonify({
             "success": True,
-            "message": "Elevate Kenya Predictions engine successfully compiled specifications and LaTeX template.",
+            "message": "Exam specifications and custom LaTeX parameters compiled successfully.",
             "data": {
                 "blueprint": result["blueprint"],
+                "prompt_used": result["prompt"],
                 "latex_file_path": latex_file
             }
         }), 200
