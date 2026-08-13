@@ -1,8 +1,15 @@
-from flask import Flask, request, jsonify
+import os
+from flask import Flask, request, jsonify, send_from_directory
 from generator import build_knec_prompt
 from compiler import prepare_pdf_latex
 
-app = Flask(__name__)
+# Point Flask to the frontend folder located in the parent directory
+frontend_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'frontend'))
+app = Flask(__name__, static_folder=frontend_dir, static_url_path='')
+
+@app.route('/')
+def serve_frontend():
+    return send_from_directory(app.static_folder, 'index.html')
 
 @app.route('/api/generate-exam', methods=['POST'])
 def generate_exam():
@@ -17,7 +24,6 @@ def generate_exam():
         result = build_knec_prompt(grade, subject, term, total_marks)
 
         # 2. Prepare the LaTeX output file using the template compiler
-        # For now, we pass a placeholder for generated exam content string
         sample_generated_content = "\\noindent \\textbf{1.} [AI Generated content based on blueprint will appear here...]"
         latex_file = prepare_pdf_latex(sample_generated_content)
 
@@ -36,4 +42,5 @@ def generate_exam():
         }), 500
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
