@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Elevate Kenya Predictions - Exam Generation Portal</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f4f6f9; margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        h2 { color: #1a365d; text-align: center; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; font-weight: bold; margin-bottom: 8px; color: #2d3748; }
+        select, input { width: 100%; padding: 10px; border: 1px solid #cbd5e0; border-radius: 4px; box-sizing: border-box; }
+        button { background: #2b6cb0; color: white; border: none; padding: 12px; width: 100%; font-size: 16px; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #2c5282; }
+        #result { margin-top: 20px; padding: 15px; background: #edf2f7; border-radius: 4px; white-space: pre-wrap; font-family: monospace; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Elevate Kenya Predictions</h2>
+        <p style="text-align: center; color: #718096;">KICD Curriculum-Aligned Examination Generator</p>
+        
+        <div class="form-group">
+            <label for="grade">Select Grade Level:</label>
+            <select id="grade">
+                <option value="Grade 7">Grade 7</option>
+                <option value="Grade 8">Grade 8</option>
+                <option value="Grade 9">Grade 9 (JSS)</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="subject">Subject Name:</label>
+            <input type="text" id="subject" placeholder="e.g., Integrated Science / Mathematics" value="Integrated Science">
+        </div>
+
+        <div class="form-group">
+            <label for="term">Term:</label>
+            <select id="term">
+                <option value="Term 1">Term 1</option>
+                <option value="Term 2">Term 2 (Cumulative)</option>
+                <option value="Term 3">Term 3 (End of Year)</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="marks">Total Marks:</label>
+            <input type="number" id="marks" value="100">
+        </div>
+
+        <button onclick="generateExam()">Generate KNEC Blueprint & Paper</button>
+
+        <div id="result" style="display:none;"></div>
+    </div>
+
+    <script>
+        async function generateExam() {
+            const grade = document.getElementById('grade').value;
+            const subject = document.getElementById('subject').value;
+            const term = document.getElementById('term').value;
+            const total_marks = parseInt(document.getElementById('marks').value);
+            
+            const resultDiv = document.getElementById('result');
+            resultDiv.style.display = 'block';
+            resultDiv.innerText = "Processing specification grid via Supabase and compiling LaTeX template...";
+
+            try {
+                const response = await fetch('/api/generate-exam', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ grade, subject, term, total_marks })
+                });
+                
+                const data = await response.json();
+                resultDiv.innerText = JSON.stringify(data, null, 2);
+            } catch (error) {
+                resultDiv.innerText = "Error connecting to engine: " + error.message;
+            }
+        }
+    </script>
+</body>
+</html>
