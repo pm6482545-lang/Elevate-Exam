@@ -1,7 +1,7 @@
 import os
 from flask import Flask, request, jsonify, send_from_directory
-from generator import build_knec_prompt
-from compiler import prepare_pdf_latex
+from .generator import build_knec_prompt
+from .compiler import prepare_pdf_latex
 
 # Point Flask to the frontend folder located in the parent directory
 frontend_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'frontend'))
