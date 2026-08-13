@@ -1,5 +1,5 @@
 import os
-from calculator import calculate_test_blueprint
+from .calculator import calculate_test_blueprint
 
 def build_knec_prompt(grade, subject, term, total_marks):
     """
