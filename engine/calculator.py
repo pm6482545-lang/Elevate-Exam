@@ -1,5 +1,4 @@
 import os
-import pandas as pd
 from supabase import create_client, Client
 
 # Initialize Supabase client using your project details
@@ -9,8 +8,8 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 def calculate_test_blueprint(target_grade, target_term, total_marks):
     """
-    Queries Supabase curriculum blueprints and uses Pandas to calculate
-    exact specification weightings for Elevate Kenya Predictions.
+    Queries Supabase curriculum blueprints and calculates
+    exact specification weightings for Elevate Kenya Predictions without pandas.
     """
     try:
         # Query your Supabase database for the matching grade and term
@@ -19,24 +18,43 @@ def calculate_test_blueprint(target_grade, target_term, total_marks):
         if response.data and len(response.data) > 0:
             blueprint_record = response.data[0]
             curriculum_data = blueprint_record.get('syllabus_weight_distribution', [])
-            df = pd.DataFrame(curriculum_data)
+            records = [dict(item) for item in curriculum_data]
         else:
             # Fallback structure if specific blueprint is not yet seeded
-            df = pd.DataFrame([
+            records = [
                 {"strand": "Primary Strand 1", "weight_factor": 1.5},
                 {"strand": "Primary Strand 2", "weight_factor": 1.0}
-            ])
+            ]
             
-        # Calculate effective weight distribution percentages
-        df['effective_weight'] = df['weight_factor'] / df['weight_factor'].sum()
-        df['marks_allocated'] = (df['effective_weight'] * total_marks).round()
-        
-        # Balance any rounding remainders to ensure exact mark totals
-        remainder = total_marks - df['marks_allocated'].sum()
-        if remainder != 0 and len(df) > 0:
-            df.loc[df.index[0], 'marks_allocated'] += remainder
+        if not records:
+            return [{"strand": "Default Assessment Area", "marks_allocated": total_marks}]
 
-        return df.to_dict(orient='records')
+        # Calculate total weight factor
+        total_weight = sum(float(r.get('weight_factor', 1.0)) for r in records)
+        if total_weight == 0:
+            total_weight = len(records)
+
+        allocated_sum = 0
+        processed_records = []
+        
+        # Calculate marks allocated per item
+        for r in records:
+            wf = float(r.get('weight_factor', 1.0))
+            effective_weight = wf / total_weight
+            marks = round(effective_weight * total_marks)
+            
+            item = dict(r)
+            item['effective_weight'] = effective_weight
+            item['marks_allocated'] = marks
+            processed_records.append(item)
+            allocated_sum += marks
+
+        # Balance any rounding remainders to ensure exact mark totals
+        remainder = total_marks - allocated_sum
+        if remainder != 0 and processed_records:
+            processed_records[0]['marks_allocated'] += remainder
+
+        return processed_records
     except Exception as e:
         # Safe fallback in case of connection exceptions
         return [{"error": str(e), "strand": "Default Assessment Area", "marks_allocated": total_marks}]
