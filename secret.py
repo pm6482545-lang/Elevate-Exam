@@ -1,0 +1,1 @@
+OPENAI_API_KEY = "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"
