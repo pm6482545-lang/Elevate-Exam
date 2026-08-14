@@ -1,6 +1,5 @@
 import os
 import sys
-import base64
 
 # Ensure the parent directory is in the path for absolute/relative execution compatibility
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -14,6 +13,12 @@ try:
 except ImportError:
     from .generator import build_knec_prompt
     from .compiler import prepare_pdf_latex
+
+# Import the key directly from secret.py, with a fallback just in case
+try:
+    from secret import OPENAI_API_KEY
+except ImportError:
+    OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 
 frontend_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'frontend'))
 app = Flask(__name__, static_folder=frontend_dir, static_url_path='')
@@ -35,11 +40,8 @@ def generate_exam():
         # 1. Build strict custom prompt and calculate blueprint
         result = build_knec_prompt(grade, subject, term, total_marks, custom_instructions)
         
-        # 2. Decode the encoded API key safely to completely bypass GitHub scanner blocks
-        encoded_key = "c2stcHJvai1tWk9BdDhqZ3Y3NC1XWVR0VVk3M0F5REtfcWpwUG1zbmtGNGRUUER3R3ltemh1ZWF5eDFId3NSdjE3QnlXMWl0ZWVJcXFYUGdPVjNCbGtGSG9VVi1CVXMyU1JtaXpUQU9UQ2xBZFc2Z09hTXJoSVVhQzB6a2ZpTVhRVXRxTncocjVmN0NOQW9vZmFxa1diNXNJRUNmb0ZXV3dvQQ=="
-        api_key = base64.b64decode(encoded_key).decode('utf-8')
-        
-        client = OpenAI(api_key=api_key)
+        # 2. Initialize OpenAI client with the clean secret key
+        client = OpenAI(api_key=OPENAI_API_KEY)
 
         # 3. Call OpenAI to generate the complete LaTeX exam following user custom rules
         openai_response = client.chat.completions.create(
