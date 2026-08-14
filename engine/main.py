@@ -1,10 +1,14 @@
 import os
 from flask import Flask, request, jsonify, send_from_directory
+from openai import OpenAI
 from .generator import build_knec_prompt
 from .compiler import prepare_pdf_latex
 
 frontend_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'frontend'))
 app = Flask(__name__, static_folder=frontend_dir, static_url_path='')
+
+# Initialize OpenAI client
+client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
 @app.route('/')
 def serve_frontend():
@@ -22,18 +26,29 @@ def generate_exam():
 
         # 1. Build strict custom prompt and calculate blueprint
         result = build_knec_prompt(grade, subject, term, total_marks, custom_instructions)
+        
+        # 2. Call OpenAI to generate the complete LaTeX exam following user custom rules
+        openai_response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": "You are a professional KNEC exam generator and LaTeX author."},
+                {"role": "user", "content": result["prompt"]}
+            ],
+            temperature=0.7
+        )
+        
+        generated_exam_content = openai_response.choices[0].message.content
 
-        # 2. Prepare the LaTeX output file
-        sample_generated_content = f"\\section*{{{subject} - {grade}}}\n\\noindent \\textbf{{Custom Instructions Applied:}} {custom_instructions}\n\n\\begin{{enumerate}}\n\\item Sample generated question based on user custom settings...\n\\end{{enumerate}}"
-        latex_file = prepare_pdf_latex(sample_generated_content)
+        # 3. Prepare the final LaTeX file
+        latex_file = prepare_pdf_latex(generated_exam_content)
 
         return jsonify({
             "success": True,
-            "message": "Exam specifications and custom LaTeX parameters compiled successfully.",
+            "message": "Elevate Kenya Predictions engine successfully generated the custom LaTeX exam paper.",
             "data": {
                 "blueprint": result["blueprint"],
-                "prompt_used": result["prompt"],
-                "latex_file_path": latex_file
+                "latex_file_path": latex_file,
+                "generated_latex": generated_exam_content
             }
         }), 200
     except Exception as e:
